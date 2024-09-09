@@ -58,6 +58,7 @@ jobs:
         id: determine_version
         run: |
           pr_title="${{ steps.get_pr_info.outputs.result.title }}"
+          echo "PR Title: $pr_title"  # Debug statement
           major=${{ steps.extract_version.outputs.major }}
           minor=${{ steps.extract_version.outputs.minor }}
           patch=${{ steps.extract_version.outputs.patch }}
