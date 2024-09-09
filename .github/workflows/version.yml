@@ -1,0 +1,128 @@
+name: Create Release and Tag
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get the latest tag
+        id: get_latest_tag
+        run: |
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1` || echo "")
+          echo "::set-output name=tag::$latest_tag"
+
+      - name: Extract version numbers
+        id: extract_version
+        run: |
+          latest_tag=${{ steps.get_latest_tag.outputs.tag }}
+          if [ -z "$latest_tag" ]; then
+            echo "::set-output name=major::0"
+            echo "::set-output name=minor::0"
+            echo "::set-output name=patch::0"
+          else
+            IFS='.' read -r -a version_parts <<< "${latest_tag#v}"
+            echo "::set-output name=major::${version_parts[0]}"
+            echo "::set-output name=minor::${version_parts[1]}"
+            echo "::set-output name=patch::${version_parts[2]}"
+          fi
+
+      - name: Get pull request title and description
+        id: get_pr_info
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const pr = await github.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
+            });
+            return { title: pr.data.title, body: pr.data.body };
+          result-encoding: string
+
+      - name: Determine new version
+        id: determine_version
+        run: |
+          pr_title="${{ steps.get_pr_info.outputs.result.title }}"
+          major=${{ steps.extract_version.outputs.major }}
+          minor=${{ steps.extract_version.outputs.minor }}
+          patch=${{ steps.extract_version.outputs.patch }}
+
+          if [ "$major" -eq 0 ] && [ "$minor" -eq 0 ] && [ "$patch" -eq 0 ]; then
+            new_tag="v0.1.0"
+          else
+            case "$pr_title" in
+              fix:*)
+                patch=$((patch + 1))
+                ;;
+              feat:*)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+              version:*)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              docs:*)
+                new_tag="v$major.$minor.$patch"
+                ;;
+              *)
+                echo "PR title does not match expected format. Valid prefixes are: fix, feat, version, docs."
+                exit 1
+                ;;
+            esac
+
+            if [ -z "$new_tag" ]; then
+              new_tag="v$major.$minor.$patch"
+            fi
+          fi
+
+          echo "::set-output name=new_tag::$new_tag"
+
+      - name: Get previous release notes
+        id: get_previous_release_notes
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const releases = await github.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            let notes = "";
+            releases.data.forEach(release => {
+              notes += `## ${release.tag_name}\n${release.body}\n\n`;
+            });
+            return notes;
+          result-encoding: string
+
+      - name: Create new tag
+        run: |
+          new_tag=${{ steps.determine_version.outputs.new_tag }}
+          git tag $new_tag
+          git push origin $new_tag
+
+      - name: Create GitHub release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ steps.determine_version.outputs.new_tag }}
+          release_name: Release ${{ steps.determine_version.outputs.new_tag }}
+          body: |
+            ${{ steps.get_pr_info.outputs.result.body }}
+
+            ## Previous Releases
+            ${{ steps.get_previous_release_notes.outputs.result }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
