@@ -42,12 +42,16 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const pr = await github.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number
-            });
-            return { title: pr.data.title, body: pr.data.body };
+            if (context.payload.pull_request) {
+              const pr = await github.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number
+              });
+              return { title: pr.data.title, body: pr.data.body };
+            } else {
+              return { title: "", body: "" };
+            }
           result-encoding: string
 
       - name: Determine new version
