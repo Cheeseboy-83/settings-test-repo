@@ -44,6 +44,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
+            console.log("Context Payload:", context.payload);
             const pr = context.payload.pull_request;
             if (pr) {
               const { data } = await github.rest.pulls.get({
@@ -51,8 +52,10 @@ jobs:
                 repo: context.repo.repo,
                 pull_number: pr.number
               });
+              console.log("PR Data:", data);
               return { title: data.title, body: data.body };
             } else {
+              console.log("No pull request context available.");
               return { title: "", body: "" };
             }
           result-encoding: string
