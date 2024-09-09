@@ -1,12 +1,14 @@
 name: Create Release and Tag
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
 
 jobs:
   create_release:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     steps:
@@ -42,16 +44,12 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            if (context.payload.pull_request) {
-              const pr = await github.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.payload.pull_request.number
-              });
-              return { title: pr.data.title, body: pr.data.body };
-            } else {
-              return { title: "", body: "" };
-            }
+            const pr = await github.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
+            });
+            return { title: pr.data.title, body: pr.data.body };
           result-encoding: string
 
       - name: Determine new version
