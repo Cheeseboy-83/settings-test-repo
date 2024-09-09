@@ -44,14 +44,14 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const pr = context.payload.pull_request;
-            if (pr) {
-              const { data } = await github.pulls.get({
+            const { github, context } = require('@actions/github');
+            if (context.payload.pull_request) {
+              const pr = await github.pulls.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                pull_number: pr.number
+                pull_number: context.payload.pull_request.number
               });
-              return { title: data.title, body: data.body };
+              return { title: pr.data.title, body: pr.data.body };
             } else {
               return { title: "", body: "" };
             }
@@ -103,6 +103,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
+            const { github, context } = require('@actions/github');
             const releases = await github.repos.listReleases({
               owner: context.repo.owner,
               repo: context.repo.repo
