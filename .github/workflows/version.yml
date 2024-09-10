@@ -47,19 +47,15 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            console.log("Context Payload:", JSON.stringify(context.payload, null, 2));
             const pr = context.payload.pull_request;
             if (pr) {
-              console.log("Pull Request Number:", pr.number);
               const { data } = await github.rest.pulls.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pr.number
               });
-              console.log("PR Data:", JSON.stringify(data, null, 2));
               return JSON.stringify({ title: data.title, body: data.body });
             } else {
-              console.log("No pull request context available.");
               return JSON.stringify({ title: "", body: "" });
             }
           result-encoding: string
@@ -68,9 +64,7 @@ jobs:
         id: determine_version
         run: |
           pr_info='${{ steps.get_pr_info.outputs.result }}'
-          echo "Get PR Info Output: $pr_info"  # Debug statement
           pr_title=$(echo $pr_info | jq -r '.title')
-          echo "PR Title: $pr_title"  # Debug statement
           major=${{ steps.extract_version.outputs.major }}
           minor=${{ steps.extract_version.outputs.minor }}
           patch=${{ steps.extract_version.outputs.patch }}
@@ -102,7 +96,6 @@ jobs:
 
           # Check if the tag already exists and increment the version if necessary
           while git rev-parse "$new_tag" >/dev/null 2>&1; do
-            echo "Tag $new_tag already exists. Incrementing version..."
             IFS='.' read -r -a version_parts <<< "${new_tag#v}"
             major=${version_parts[0]}
             minor=${version_parts[1]}
