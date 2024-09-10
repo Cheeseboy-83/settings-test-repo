@@ -102,6 +102,17 @@ jobs:
             fi
           fi
 
+          # Check if the tag already exists and increment the version if necessary
+          while git rev-parse "$new_tag" >/dev/null 2>&1; do
+            echo "Tag $new_tag already exists. Incrementing version..."
+            IFS='.' read -r -a version_parts <<< "${new_tag#v}"
+            major=${version_parts[0]}
+            minor=${version_parts[1]}
+            patch=${version_parts[2]}
+            patch=$((patch + 1))
+            new_tag="v$major.$minor.$patch"
+          done
+
           echo "::set-output name=new_tag::$new_tag"
 
       - name: Get previous release notes
