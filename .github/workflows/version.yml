@@ -106,22 +106,6 @@ jobs:
 
           echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
 
-      - name: Get previous release notes
-        id: get_previous_release_notes
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const releases = await github.rest.repos.listReleases({
-              owner: context.repo.owner,
-              repo: context.repo.repo
-            });
-            let notes = "";
-            releases.data.forEach(release => {
-              notes += `## ${release.tag_name}\n${release.body}\n\n`;
-            });
-            return notes;
-          result-encoding: string
-
       - name: Create new tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -138,7 +122,6 @@ jobs:
           script: |
             const newTag = '${{ steps.determine_version.outputs.new_tag }}';
             const prInfo = JSON.parse('${{ steps.get_pr_info.outputs.result }}');
-            const previousNotes = `${{ steps.get_previous_release_notes.outputs.result }}`;
 
             if (newTag) {
               // Create a new release
@@ -147,7 +130,7 @@ jobs:
                 repo: context.repo.repo,
                 tag_name: newTag,
                 name: newTag,
-                body: `${prInfo.body}\n\n## Previous Releases\n${previousNotes}`,
+                body: prInfo.body,
                 draft: false,
                 prerelease: false
               });
