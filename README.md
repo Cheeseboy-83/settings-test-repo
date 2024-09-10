@@ -51,7 +51,7 @@ Simply copy the code below
 ```
 module "resource-group" {
   source  = "app.terraform.io/cheeseboy/resource-group/azurerm"
-  version = "1.0.5"
+  version = "1.0.6"
   for_each = { for key, value in var.resource_groups : key => value }
 
   name     = each.value.name
