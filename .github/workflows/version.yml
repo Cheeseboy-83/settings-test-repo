@@ -64,6 +64,7 @@ jobs:
       - name: Determine new version
         id: determine_version
         run: |
+          echo "Get PR Info Output: ${{ steps.get_pr_info.outputs.result }}"  # Debug statement
           pr_title="${{ steps.get_pr_info.outputs.result.title }}"
           echo "PR Title: $pr_title"  # Debug statement
           major=${{ steps.extract_version.outputs.major }}
