@@ -144,7 +144,22 @@ jobs:
             const prInfo = JSON.parse('${{ steps.get_pr_info.outputs.result }}');
             const previousNotes = `${{ steps.get_previous_release_notes.outputs.result }}`;
 
-            if (newTag) {
+            // Check if the release notes for the new tag already exist
+            const existingRelease = await github.rest.repos.getReleaseByTag({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag: newTag
+            }).catch(() => null);
+
+            if (existingRelease) {
+              // Update the existing release with new PR info
+              await github.rest.repos.updateRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: existingRelease.data.id,
+                body: `${existingRelease.data.body}\n\n${prInfo.body}`
+              });
+            } else {
               // Create a new release
               await github.rest.repos.createRelease({
                 owner: context.repo.owner,
@@ -154,19 +169,6 @@ jobs:
                 body: `${prInfo.body}\n\n## Previous Releases\n${previousNotes}`,
                 draft: false,
                 prerelease: false
-              });
-            } else {
-              // Update the latest release with new documentation changes
-              const latestRelease = await github.rest.repos.getLatestRelease({
-                owner: context.repo.owner,
-                repo: context.repo.repo
-              });
-
-              await github.rest.repos.updateRelease({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: latestRelease.data.id,
-                body: `${latestRelease.data.body}\n\n${prInfo.body}`
               });
             }
           result-encoding: string
