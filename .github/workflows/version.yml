@@ -144,7 +144,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git tag $new_tag
           git push origin $new_tag
-        
+
       - name: Create or Update GitHub release
         uses: actions/github-script@v6
         with:
@@ -152,10 +152,7 @@ jobs:
             const newTag = '${{ steps.determine_version.outputs.new_tag }}';
             const prInfo = JSON.parse('${{ steps.get_pr_info.outputs.result }}');
             const previousNotes = `${{ steps.get_previous_release_notes.outputs.result }}`;
-        
-            // Escape newlines and single quotes in previousNotes
-            const escapedPreviousNotes = previousNotes.replace(/\n/g, '\\n').replace(/'/g, "\\'");
-        
+
             if (newTag) {
               // Create a new release
               await github.rest.repos.createRelease({
@@ -163,7 +160,7 @@ jobs:
                 repo: context.repo.repo,
                 tag_name: newTag,
                 name: newTag,
-                body: `${prInfo.body}\n\n## Previous Releases\n${escapedPreviousNotes}`,
+                body: `${prInfo.body}\n\n## Previous Releases\n${previousNotes}`,
                 draft: false,
                 prerelease: false
               });
@@ -173,7 +170,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo
               });
-        
+
               await github.rest.repos.updateRelease({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
