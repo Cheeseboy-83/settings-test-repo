@@ -82,7 +82,7 @@ jobs:
               fix:*)
                 patch=$((patch + 1))
                 ;;
-              feat:*)
+              feature:*)
                 minor=$((minor + 1))
                 patch=0
                 ;;
@@ -91,22 +91,17 @@ jobs:
                 minor=0
                 patch=0
                 ;;
-              docs:*)
-                new_tag=""
-                ;;
               *)
-                echo "PR title does not match expected format. Valid prefixes are: fix, feat, version, docs."
+                echo "PR title does not match expected format. Valid prefixes are: fix, feature, version."
                 exit 1
                 ;;
             esac
 
-            if [ -z "$new_tag" ] && [ "$pr_title" != docs:* ]; then
-              new_tag="v$major.$minor.$patch"
-            fi
+            new_tag="v$major.$minor.$patch"
           fi
 
           # Check if the tag already exists and increment the version if necessary
-          while [ -n "$new_tag" ] && git rev-parse "$new_tag" >/dev/null 2>&1; do
+          while git rev-parse "$new_tag" >/dev/null 2>&1; do
             echo "Tag $new_tag already exists. Incrementing version..."
             IFS='.' read -r -a version_parts <<< "${new_tag#v}"
             major=${version_parts[0]}
@@ -135,7 +130,6 @@ jobs:
           result-encoding: string
 
       - name: Create new tag
-        if: steps.determine_version.outputs.new_tag != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
