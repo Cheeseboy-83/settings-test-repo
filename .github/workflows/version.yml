@@ -92,7 +92,7 @@ jobs:
                 patch=0
                 ;;
               docs:*)
-                new_tag="v$major.$minor.$patch"
+                new_tag=""
                 ;;
               *)
                 echo "PR title does not match expected format. Valid prefixes are: fix, feat, version, docs."
@@ -106,7 +106,7 @@ jobs:
           fi
 
           # Check if the tag already exists and increment the version if necessary
-          while git rev-parse "$new_tag" >/dev/null 2>&1; do
+          while [ -n "$new_tag" ] && git rev-parse "$new_tag" >/dev/null 2>&1; do
             echo "Tag $new_tag already exists. Incrementing version..."
             IFS='.' read -r -a version_parts <<< "${new_tag#v}"
             major=${version_parts[0]}
@@ -135,6 +135,7 @@ jobs:
           result-encoding: string
 
       - name: Create new tag
+        if: steps.determine_version.outputs.new_tag != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -144,17 +145,39 @@ jobs:
           git tag $new_tag
           git push origin $new_tag
 
-      - name: Create GitHub release
-        uses: actions/create-release@v1
+      - name: Create or Update GitHub release
+        uses: actions/github-script@v6
         with:
-          tag_name: ${{ steps.determine_version.outputs.new_tag }}
-          release_name: ${{ steps.determine_version.outputs.new_tag }}
-          body: |
-            ${{ steps.get_pr_info.outputs.result.body }}
+          script: |
+            const newTag = '${{ steps.determine_version.outputs.new_tag }}';
+            const prInfo = JSON.parse('${{ steps.get_pr_info.outputs.result }}');
+            const previousNotes = '${{ steps.get_previous_release_notes.outputs.result }}';
 
-            ## Previous Releases
-            ${{ steps.get_previous_release_notes.outputs.result }}
-          draft: false
-          prerelease: false
+            if (newTag) {
+              // Create a new release
+              await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: newTag,
+                name: newTag,
+                body: `${prInfo.body}\n\n## Previous Releases\n${previousNotes}`,
+                draft: false,
+                prerelease: false
+              });
+            } else {
+              // Update the latest release with new documentation changes
+              const latestRelease = await github.rest.repos.getLatestRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo
+              });
+
+              await github.rest.repos.updateRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: latestRelease.data.id,
+                body: `${latestRelease.data.body}\n\n${prInfo.body}`
+              });
+            }
+          result-encoding: string
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
