@@ -42,7 +42,7 @@ No modules.
 | Name | Version |
 |------|---------|
 |Terraform | 1.9.5 |
-|Azurerm | 3.99.0 |
+|Azurerm | 3.109.0 |
 
 ### How to use
 
@@ -51,7 +51,7 @@ Simply copy the code below
 ```
 module "resource-group" {
   source  = "app.terraform.io/cheeseboy/resource-group/azurerm"
-  version = "1.0.10"
+  version = "1.0.11"
   for_each = { for key, value in var.resource_groups : key => value }
 
   name     = each.value.name
