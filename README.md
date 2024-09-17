@@ -51,7 +51,7 @@ Simply copy the code below
 ```
 module "resource-group" {
   source  = "app.terraform.io/cheeseboy/resource-group/azurerm"
-  version = "1.0.12"                                                    # replace with latest/desired version
+  version = "0.1.0"                                                     # replace with latest/desired version
   for_each = { for key, value in var.resource_groups : key => value }
 
   name     = each.value.name
@@ -92,25 +92,5 @@ resource_groups = {
       key1 = "value1"
     }
   }
-}
-```
-
-# Required Tags Variable Parameter 
-
-### Simply copy the below code block to your code and update the parameters accordingly (variables.tf)
-
-```
-#this is for your required tags
-variable "required_tags" {
-  type = map(any)
-  default = {
-    application = "tbd"                                         #insert value here
-    environment = "test"                                        #insert value here
-    cost-center = "10610-global-technology-operations"          #insert value here
-    owner       = "cloud-enablement"                            #insert value here
-
-  }
-
-  description = "These are the minimum required tags."
 }
 ```
